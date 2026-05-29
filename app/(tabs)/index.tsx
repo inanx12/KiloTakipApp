@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Plus, Edit2, Trash2, Calendar, TrendingDown, TrendingUp, Info, Flame, Target } from "lucide-react-native";
-import Animated, { FadeInUp, FadeInDown, Stagger } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import dayjs from "dayjs";
 
 import { Card } from "../../components/ui/Card";
