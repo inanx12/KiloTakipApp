@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Kilo Takip",
+    "slug": "kilotakip",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000",
+    "themeColor": "#00F0FF",
+    "scheme": "kilotakip",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kilotakip.app"
+    },
+    "android": {
+      "package": "com.kilotakip.app",
+      "userInterfaceStyle": "dark"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
