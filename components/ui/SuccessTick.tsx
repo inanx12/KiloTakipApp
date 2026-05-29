@@ -49,8 +49,10 @@ export function SuccessTick({ onComplete, visible }: SuccessTickProps) {
   if (!visible && opacity.value === 0) return null;
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
-      <CheckCircle2 size={80} color="#00FF87" strokeWidth={2.5} />
+    <Animated.View pointerEvents="none" style={styles.container}>
+      <Animated.View style={[styles.badge, animatedStyle]}>
+        <CheckCircle2 size={84} color="#22D17E" strokeWidth={2.4} />
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -61,6 +63,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(10,10,11,0.35)',
+  },
+  badge: {
+    width: 132,
+    height: 132,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(34,209,126,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,209,126,0.4)',
   },
 });

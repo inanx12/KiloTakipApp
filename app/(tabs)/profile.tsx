@@ -12,17 +12,16 @@ import { useFocusEffect } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import {
-  Download,
-  Trash2,
   Scale,
-  Dumbbell,
   Target,
   ChevronRight,
-  TrendingDown,
   TrendingUp,
+  CheckCircle2,
   Moon,
   Sun,
   MonitorSmartphone,
+  Download,
+  RotateCcw,
 } from "lucide-react-native";
 
 import { Card } from "../../components/ui/Card";
@@ -44,21 +43,28 @@ import {
   exportToCSV,
 } from "../../utils/helpers";
 import { useTheme, ThemeType } from "../../utils/ThemeContext";
+import { usePalette } from "../../utils/colors";
+
+// VKİ konum çubuğu için segmentler (15–35 ölçeği)
+const BMI_SEGMENTS = [
+  { min: 15, max: 18.5, color: "#00B0F0" },
+  { min: 18.5, max: 25, color: "#22D17E" },
+  { min: 25, max: 30, color: "#BF55EC" },
+  { min: 30, max: 35, color: "#FF5C5C" },
+];
 
 export default function ProfileScreen() {
+  const palette = usePalette();
+  const { theme, setTheme, isDark } = useTheme();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [history, setHistory] = useState<WeightEntry[]>([]);
 
-  // Theme
-  const { theme, setTheme, isDark } = useTheme();
-
-  // Form states
   const [heightInput, setHeightInput] = useState<string>("");
   const [targetWeightInput, setTargetWeightInput] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Load profile and history
   const loadData = async () => {
     const prof = await getProfile();
     if (prof) {
@@ -66,7 +72,6 @@ export default function ProfileScreen() {
       setHeightInput(prof.height.toString());
       setTargetWeightInput(prof.targetWeight.toString());
     }
-
     const hist = await getWeightHistory();
     setHistory(hist);
     setFormError(null);
@@ -82,39 +87,30 @@ export default function ProfileScreen() {
   const handleUpdateProfile = async () => {
     setFormError(null);
     setSuccessMsg(null);
-
-    const heightNum = parseInt(heightInput);
+    const heightNum = parseInt(heightInput, 10);
     const targetWeightNum = parseFloat(targetWeightInput.replace(",", "."));
 
     if (isNaN(heightNum) || heightNum < 100 || heightNum > 250) {
-      setFormError("Lütfen geçerli bir boy girin (100 - 250 cm).");
+      setFormError("Geçerli bir boy girin (100 - 250 cm).");
       return;
     }
-
     if (isNaN(targetWeightNum) || targetWeightNum < 20 || targetWeightNum > 300) {
-      setFormError("Lütfen geçerli bir hedef kilo girin (20 - 300 kg).");
+      setFormError("Geçerli bir hedef kilo girin (20 - 300 kg).");
       return;
     }
 
     const updated = await saveProfile(heightNum, targetWeightNum);
     setProfile(updated);
-    setSuccessMsg("Profil ayarlarınız başarıyla güncellendi!");
-    
-    setTimeout(() => {
-      setSuccessMsg(null);
-    }, 3000);
+    setSuccessMsg("Profil güncellendi!");
+    setTimeout(() => setSuccessMsg(null), 3000);
   };
 
   const handleExportCSV = async () => {
     if (history.length === 0) {
-      if (Platform.OS === "web") {
-        window.alert("Dışa aktarılacak kilo kaydı bulunamadı.");
-      } else {
-        Alert.alert("Veri Yok", "Dışa aktarılacak kilo kaydı bulunamadı.");
-      }
+      const m = "Dışa aktarılacak kilo kaydı bulunamadı.";
+      Platform.OS === "web" ? window.alert(m) : Alert.alert("Veri Yok", m);
       return;
     }
-
     const csvContent = exportToCSV(history);
 
     if (Platform.OS === "web") {
@@ -137,7 +133,6 @@ export default function ProfileScreen() {
         await FileSystem.writeAsStringAsync(fileUri, csvContent, {
           encoding: FileSystem.EncodingType.UTF8,
         });
-
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(fileUri);
         } else {
@@ -157,70 +152,58 @@ export default function ProfileScreen() {
       setHistory([]);
       setHeightInput("");
       setTargetWeightInput("");
-      setSuccessMsg("Tüm veriler başarıyla sıfırlandı.");
+      setSuccessMsg("Tüm veriler sıfırlandı.");
       setTimeout(() => setSuccessMsg(null), 3000);
     };
-
+    const msg =
+      "Tüm kilo geçmişiniz ve profil bilgileriniz silinecektir. Bu işlem GERİ ALINAMAZ! Onaylıyor musunuz?";
     if (Platform.OS === "web") {
-      if (window.confirm("Tüm kilo geçmişiniz ve profil bilgileriniz silinecektir. Bu işlem GERİ ALINAMAZ! Onaylıyor musunuz?")) {
-        performReset();
-      }
+      if (window.confirm(msg)) performReset();
     } else {
-      Alert.alert(
-        "Verileri Sıfırla",
-        "Tüm kilo geçmişiniz ve profil bilgileriniz silinecektir. Bu işlem GERİ ALINAMAZ! Onaylıyor musunuz?",
-        [
-          { text: "Vazgeç", style: "cancel" },
-          { text: "Sıfırla", onPress: performReset, style: "destructive" },
-        ]
-      );
+      Alert.alert("Verileri Sıfırla", msg, [
+        { text: "Vazgeç", style: "cancel" },
+        { text: "Sıfırla", onPress: performReset, style: "destructive" },
+      ]);
     }
   };
 
   const currentWeight = history.length > 0 ? history[history.length - 1].weight : 0;
   const initialWeight = history.length > 0 ? history[0].weight : 0;
-  
   const bmi = profile ? calculateBMI(currentWeight, profile.height) : 0;
   const bmiInfo = getBMICategory(bmi);
 
   const getProgressInfo = () => {
-    if (!profile || history.length === 0) return { percent: 0, text: "Giriş yapılması bekleniyor" };
+    if (!profile || history.length === 0) return { percent: 0, text: "Veri bekleniyor" };
     const target = profile.targetWeight;
-    
     if (currentWeight === target) return { percent: 100, text: "Hedefe ulaşıldı!" };
-
     const totalDistance = Math.abs(initialWeight - target);
     const currentDistance = Math.abs(currentWeight - target);
-
-    if (totalDistance === 0) return { percent: 0, text: "Aynı başlangıç/hedef kilo" };
-
+    if (totalDistance === 0) return { percent: 0, text: "Aynı başlangıç/hedef" };
     const diff = totalDistance - currentDistance;
     const rawPercent = Math.max(0, Math.min(100, (diff / totalDistance) * 100));
-    
-    return {
-      percent: Math.round(rawPercent),
-      text: `%${Math.round(rawPercent)} tamamlandı`,
-    };
+    return { percent: Math.round(rawPercent), text: `%${Math.round(rawPercent)} tamamlandı` };
   };
 
   const progress = getProgressInfo();
-  const etaInfo = profile
-    ? calculateETA(history, currentWeight, profile.targetWeight)
-    : null;
+  const etaInfo = profile ? calculateETA(history, currentWeight, profile.targetWeight) : null;
 
-  const ThemeOption = ({ type, icon: Icon, label }: { type: ThemeType, icon: any, label: string }) => {
+  const ThemeOption = ({ type, icon: Icon, label }: { type: ThemeType; icon: any; label: string }) => {
     const isActive = theme === type;
     return (
       <TouchableOpacity
+        activeOpacity={0.8}
         onPress={() => setTheme(type)}
-        className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border ${
-          isActive 
-            ? "bg-accent-blue/10 border-accent-blue" 
-            : "bg-light-bg dark:bg-dark-bg border-light-border dark:border-dark-border"
-        }`}
+        className="flex-1 flex-row items-center justify-center py-3 rounded-xl border"
+        style={{
+          backgroundColor: isActive ? palette.accent + "1A" : palette.bg,
+          borderColor: isActive ? palette.accent : palette.border,
+        }}
       >
-        <Icon size={16} color={isActive ? "#00F0FF" : isDark ? "#9A9AB0" : "#6C757D"} />
-        <Text className={`ml-2 text-xs font-bold ${isActive ? "text-accent-blue" : "text-light-subtext dark:text-dark-subtext"}`}>
+        <Icon size={16} color={isActive ? palette.accent : palette.muted} strokeWidth={2.4} />
+        <Text
+          className="ml-2 text-xs font-bold"
+          style={{ color: isActive ? palette.accent : palette.subtext }}
+        >
           {label}
         </Text>
       </TouchableOpacity>
@@ -229,85 +212,26 @@ export default function ProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-light-bg dark:bg-dark-bg"
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 48 }}
         className="flex-1"
       >
-        <View className="mb-6 mt-4">
-          <Text className="text-3xl font-black text-light-text dark:text-white tracking-tight uppercase">
+        <View className="mb-6 mt-2">
+          <Text className="text-light-text dark:text-white text-2xl font-black tracking-tight">
             Profil & Ayarlar
           </Text>
-          <Text className="text-xs text-light-subtext dark:text-dark-subtext uppercase tracking-widest font-bold mt-1">
-            Gövde Analizi ve Tercihler
+          <Text className="text-light-muted dark:text-dark-muted text-xs font-semibold mt-1">
+            Vücut analizi ve tercihler
           </Text>
         </View>
 
-        <View className="mb-6">
-          <MorphingSilhouette bmi={bmi} heightCm={profile?.height || 0} />
-        </View>
-
-        {profile && currentWeight > 0 ? (
-          <Card className="mb-6 border-l-4" style={{ borderLeftColor: bmiInfo.color }}>
-            <View className="flex-row justify-between items-center mb-2">
-              <View>
-                <Text className="text-[10px] text-light-subtext dark:text-dark-subtext uppercase tracking-widest font-black">
-                  VÜCUT KİTLE İNDEKSİ (VKİ)
-                </Text>
-                <Text className="text-3xl font-black text-light-text dark:text-white mt-1">
-                  {bmi.toFixed(1)} <Text className="text-xs font-semibold text-light-subtext dark:text-dark-subtext">kg/m²</Text>
-                </Text>
-              </View>
-
-              <View
-                className="px-3.5 py-1.5 rounded-full border"
-                style={{ borderColor: bmiInfo.color + "40", backgroundColor: bmiInfo.color + "12" }}
-              >
-                <Text className="text-xs font-extrabold uppercase" style={{ color: bmiInfo.color }}>
-                  {bmiInfo.category}
-                </Text>
-              </View>
-            </View>
-
-            <View className="h-1.5 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-full mt-3 mb-2 flex-row overflow-hidden">
-              <View className="flex-1 border-r border-light-border dark:border-dark-border/40" style={{ backgroundColor: bmi < 18.5 ? "#00F0FF" : "transparent" }} />
-              <View className="flex-1.5 border-r border-light-border dark:border-dark-border/40" style={{ backgroundColor: bmi >= 18.5 && bmi < 25 ? "#00FF87" : "transparent" }} />
-              <View className="flex-1.2 border-r border-light-border dark:border-dark-border/40" style={{ backgroundColor: bmi >= 25 && bmi < 30 ? "#BF55EC" : "transparent" }} />
-              <View className="flex-1" style={{ backgroundColor: bmi >= 30 ? "#FF3B30" : "transparent" }} />
-            </View>
-
-            <Text className="text-xs text-light-subtext dark:text-dark-subtext mt-1 leading-5">
-              {bmiInfo.description}
-            </Text>
-          </Card>
-        ) : (
-          <Card className="mb-6 items-center p-6 border border-dashed border-light-border dark:border-dark-border">
-            <Scale size={24} color={isDark ? "#9A9AB0" : "#6C757D"} strokeWidth={1.5} />
-            <Text className="text-light-text dark:text-white font-bold text-center mt-3 mb-1">VKİ Hesaplanamadı</Text>
-            <Text className="text-light-subtext dark:text-dark-subtext text-xs text-center leading-5">
-              VKİ hesabının yapılabilmesi için lütfen boyunuzu girin ve en az 1 kilo kaydı ekleyin.
-            </Text>
-          </Card>
-        )}
-
-        {/* Theme Selector */}
-        <Card className="mb-6">
-          <Text className="text-base font-black text-light-text dark:text-white mb-4 uppercase tracking-wide">
-            Tema Ayarları
-          </Text>
-          <View className="flex-row space-x-2 gap-2">
-            <ThemeOption type="system" icon={MonitorSmartphone} label="Sistem" />
-            <ThemeOption type="light" icon={Sun} label="Aydınlık" />
-            <ThemeOption type="dark" icon={Moon} label="Karanlık" />
-          </View>
-        </Card>
-
-        {/* Input Profile Card */}
-        <Card className="mb-6">
-          <Text className="text-base font-black text-light-text dark:text-white mb-4 uppercase tracking-wide">
+        {/* Fiziksel parametreler */}
+        <Card elevated className="mb-5">
+          <Text className="text-light-text dark:text-white text-[13px] font-extrabold uppercase tracking-wide mb-4">
             Fiziksel Parametreler
           </Text>
 
@@ -316,28 +240,27 @@ export default function ProfileScreen() {
               <Text className="text-accent-red text-xs font-semibold text-center">{formError}</Text>
             </View>
           )}
-
           {successMsg && (
-            <View className="bg-accent-green/10 border border-accent-green/20 rounded-xl p-3 mb-4">
-              <Text className="text-accent-green text-xs font-semibold text-center">{successMsg}</Text>
+            <View className="flex-row items-center justify-center bg-accent-green/10 border border-accent-green/20 rounded-xl p-3 mb-4">
+              <CheckCircle2 size={15} color={palette.green} strokeWidth={2.4} />
+              <Text className="text-accent-green text-xs font-semibold text-center ml-1.5">{successMsg}</Text>
             </View>
           )}
 
-          <View className="flex-row space-x-4 gap-4 w-full">
-            <View className="flex-1 w-1/2">
+          <View className="flex-row gap-4">
+            <View className="flex-1">
               <Input
                 label="Boy (cm)"
-                placeholder="Örn: 180"
+                placeholder="180"
                 keyboardType="numeric"
                 value={heightInput}
                 onChangeText={setHeightInput}
               />
             </View>
-
-            <View className="flex-1 w-1/2">
+            <View className="flex-1">
               <Input
                 label="Hedef Kilo (kg)"
-                placeholder="Örn: 75.0"
+                placeholder="75"
                 keyboardType="numeric"
                 value={targetWeightInput}
                 onChangeText={setTargetWeightInput}
@@ -345,124 +268,187 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Button
-            title="PROFİLİ GÜNCELLE"
-            onPress={handleUpdateProfile}
-            className="w-full mt-2"
-          />
+          <Button title="Profili Güncelle" onPress={handleUpdateProfile} className="w-full mt-4" />
         </Card>
 
-        {/* Target Progress & ETA Card */}
+        {/* VKİ */}
+        {profile && currentWeight > 0 ? (
+          <Card className="mb-5">
+            <View className="flex-row justify-between items-start mb-3">
+              <View>
+                <Text className="text-light-muted dark:text-dark-muted text-[10px] font-bold uppercase tracking-widest">
+                  Vücut Kitle İndeksi
+                </Text>
+                <View className="flex-row items-baseline mt-1">
+                  <Text className="text-4xl font-black text-light-text dark:text-white">{bmi.toFixed(1)}</Text>
+                  <Text className="text-xs font-semibold text-light-subtext dark:text-dark-subtext ml-1.5">kg/m²</Text>
+                </View>
+              </View>
+              <View
+                className="px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: bmiInfo.color + "1A" }}
+              >
+                <Text className="text-xs font-extrabold uppercase" style={{ color: bmiInfo.color }}>
+                  {bmiInfo.category}
+                </Text>
+              </View>
+            </View>
+
+            {/* İnce renkli konum çubuğu */}
+            <View className="flex-row h-2 rounded-full overflow-hidden mt-2 mb-3 gap-0.5">
+              {BMI_SEGMENTS.map((seg) => {
+                const active = bmi >= seg.min && bmi < seg.max;
+                const flex = seg.max - seg.min;
+                return (
+                  <View
+                    key={seg.min}
+                    style={{
+                      flex,
+                      backgroundColor: seg.color,
+                      opacity: active ? 1 : 0.22,
+                    }}
+                  />
+                );
+              })}
+            </View>
+
+            <Text className="text-xs text-light-subtext dark:text-dark-subtext leading-5">
+              {bmiInfo.description}
+            </Text>
+          </Card>
+        ) : (
+          <Card className="mb-5 items-center p-6 border-dashed">
+            <Scale size={24} color={palette.muted} strokeWidth={1.6} />
+            <Text className="text-light-text dark:text-white font-bold text-center mt-3 mb-1">VKİ Hesaplanamadı</Text>
+            <Text className="text-light-subtext dark:text-dark-subtext text-xs text-center leading-5">
+              Boyunuzu girin ve en az 1 kilo kaydı ekleyin.
+            </Text>
+          </Card>
+        )}
+
+        {/* Silüet */}
+        <View className="mb-5">
+          <MorphingSilhouette bmi={bmi} heightCm={profile?.height || 0} />
+        </View>
+
+        {/* Tema seçici */}
+        <Card elevated className="mb-5">
+          <Text className="text-light-text dark:text-white text-[13px] font-extrabold uppercase tracking-wide mb-3">
+            Tema
+          </Text>
+          <View className="flex-row gap-2">
+            <ThemeOption type="system" icon={MonitorSmartphone} label="Sistem" />
+            <ThemeOption type="light" icon={Sun} label="Açık" />
+            <ThemeOption type="dark" icon={Moon} label="Koyu" />
+          </View>
+        </Card>
+
+        {/* Hedef ilerlemesi & ETA */}
         {profile && history.length > 0 && (
-          <Card className="mb-6">
-            <Text className="text-base font-black text-light-text dark:text-white mb-4 uppercase tracking-wide">
-              Hedef İlerlemesi & Tahmin
+          <Card className="mb-5">
+            <Text className="text-light-text dark:text-white text-[13px] font-extrabold uppercase tracking-wide mb-4">
+              Hedef İlerlemesi
             </Text>
 
             <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-xs text-light-subtext dark:text-dark-subtext font-bold">Tamamlanma Oranı</Text>
+              <Text className="text-xs text-light-muted dark:text-dark-muted font-bold">Tamamlanma</Text>
               <Text className="text-sm font-black text-accent-blue">{progress.text}</Text>
             </View>
-
-            <View className="h-3 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-full overflow-hidden mb-4 p-0.5">
+            <View className="h-2.5 bg-light-bg dark:bg-dark-elevated rounded-full overflow-hidden mb-4">
               <View
-                className="h-full bg-accent-blue rounded-full shadow"
-                style={{ width: `${progress.percent}%` }}
+                className="h-full rounded-full"
+                style={{ width: `${progress.percent}%`, backgroundColor: palette.accent }}
               />
             </View>
 
-            <View className="flex-row items-center justify-between bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-xl p-3 mb-4">
+            <View className="flex-row items-center justify-between bg-light-bg dark:bg-dark-elevated rounded-xl p-3 mb-4">
               <View className="items-center flex-1">
-                <Text className="text-[9px] text-light-subtext dark:text-dark-subtext font-bold uppercase tracking-wider">İLK KİLO</Text>
-                <Text className="text-sm font-extrabold text-light-text dark:text-white mt-0.5">{initialWeight.toFixed(1)} kg</Text>
+                <Text className="text-[9px] text-light-muted dark:text-dark-muted font-bold uppercase tracking-wider">İlk</Text>
+                <Text className="text-sm font-extrabold text-light-text dark:text-white mt-0.5">{initialWeight.toFixed(1)}</Text>
               </View>
-              <ChevronRight size={14} color={isDark ? "#232335" : "#E9ECEF"} />
+              <ChevronRight size={14} color={palette.muted} />
               <View className="items-center flex-1">
-                <Text className="text-[9px] text-light-subtext dark:text-dark-subtext font-bold uppercase tracking-wider">GÜNCEL</Text>
-                <Text className="text-sm font-extrabold text-accent-blue mt-0.5">{currentWeight.toFixed(1)} kg</Text>
+                <Text className="text-[9px] text-light-muted dark:text-dark-muted font-bold uppercase tracking-wider">Güncel</Text>
+                <Text className="text-sm font-extrabold text-accent-blue mt-0.5">{currentWeight.toFixed(1)}</Text>
               </View>
-              <ChevronRight size={14} color={isDark ? "#232335" : "#E9ECEF"} />
+              <ChevronRight size={14} color={palette.muted} />
               <View className="items-center flex-1">
-                <Text className="text-[9px] text-light-subtext dark:text-dark-subtext font-bold uppercase tracking-wider">HEDEF</Text>
-                <Text className="text-sm font-extrabold text-accent-purple mt-0.5">{profile.targetWeight.toFixed(1)} kg</Text>
+                <Text className="text-[9px] text-light-muted dark:text-dark-muted font-bold uppercase tracking-wider">Hedef</Text>
+                <Text className="text-sm font-extrabold text-accent-purple mt-0.5">{profile.targetWeight.toFixed(1)}</Text>
               </View>
             </View>
 
             {etaInfo && (
-              <View className="border-t border-light-border dark:border-dark-border/60 pt-4 mt-1">
-                <View className="flex-row items-start space-x-3 gap-3">
-                  <View className="bg-light-bg dark:bg-dark-bg p-2.5 border border-light-border dark:border-dark-border rounded-xl mt-0.5">
-                    {etaInfo.status === "reached" ? (
-                      <Dumbbell size={16} color="#00FF87" />
-                    ) : etaInfo.status === "wrong_direction" ? (
-                      <TrendingUp size={16} color="#FF3B30" />
-                    ) : (
-                      <Target size={16} color="#BF55EC" />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-xs text-light-text dark:text-white font-bold uppercase tracking-wider">
-                      {etaInfo.status === "reached"
-                        ? "HEDEFE ULAŞILDI!"
+              <View className="flex-row items-start gap-3 border-t border-light-border dark:border-dark-border pt-4">
+                <View
+                  className="w-10 h-10 rounded-xl items-center justify-center"
+                  style={{
+                    backgroundColor:
+                      (etaInfo.status === "reached"
+                        ? palette.green
                         : etaInfo.status === "wrong_direction"
-                        ? "EĞİLİM YÖNÜ HATALI"
-                        : "TAHMİNİ HEDEF TARİHİ"}
-                    </Text>
-
-                    {etaInfo.status === "success" && (
-                      <Text className="text-sm font-black text-accent-purple mt-1">
-                        {etaInfo.etaDate}
+                        ? palette.red
+                        : palette.purple) + "14",
+                  }}
+                >
+                  {etaInfo.status === "reached" ? (
+                    <CheckCircle2 size={18} color={palette.green} strokeWidth={2.4} />
+                  ) : etaInfo.status === "wrong_direction" ? (
+                    <TrendingUp size={18} color={palette.red} strokeWidth={2.4} />
+                  ) : (
+                    <Target size={18} color={palette.purple} strokeWidth={2.4} />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs text-light-text dark:text-white font-bold uppercase tracking-wider">
+                    {etaInfo.status === "reached"
+                      ? "Hedefe Ulaşıldı!"
+                      : etaInfo.status === "wrong_direction"
+                      ? "Eğilim Yönü Hatalı"
+                      : etaInfo.status === "success"
+                      ? "Tahmini Hedef Tarihi"
+                      : "Tahmin"}
+                  </Text>
+                  {etaInfo.status === "success" ? (
+                    <>
+                      <Text className="text-sm font-black text-accent-purple mt-1">{etaInfo.etaDate}</Text>
+                      <Text className="text-xs text-light-subtext dark:text-dark-subtext mt-1.5 leading-5">
+                        Haftalık {Math.abs(etaInfo.ratePerWeek)} kg hızıyla hedefe yaklaşık{" "}
+                        <Text className="text-light-text dark:text-white font-extrabold">{etaInfo.weeksRemaining} hafta</Text> kaldı.
                       </Text>
-                    )}
-
-                    {etaInfo.status !== "success" && (
-                      <Text className="text-xs text-light-subtext dark:text-dark-subtext font-bold mt-1">
-                        {etaInfo.etaDate}
-                      </Text>
-                    )}
-
-                    {etaInfo.status === "success" && (
-                      <Text className="text-xs text-light-subtext dark:text-dark-subtext mt-1.5 leading-5 font-semibold">
-                        Mevcut haftalık hızınızla ({Math.abs(etaInfo.ratePerWeek)} kg/hafta) hedefinize ulaşmak için yaklaşık{" "}
-                        <Text className="text-light-text dark:text-white font-extrabold">{etaInfo.weeksRemaining} hafta</Text> gerekmektedir.
-                      </Text>
-                    )}
-
-                    {etaInfo.status === "wrong_direction" && (
-                      <Text className="text-xs text-light-subtext dark:text-dark-subtext mt-1.5 leading-5 font-semibold">
-                        Hedefiniz kilo {currentWeight > profile.targetWeight ? "vermek" : "almak"} ancak son dönemde kilo{" "}
-                        {etaInfo.ratePerWeek > 0 ? "aldınız" : "verdiniz"} ({Math.abs(etaInfo.ratePerWeek)} kg/hafta).
-                      </Text>
-                    )}
-                  </View>
+                    </>
+                  ) : (
+                    <Text className="text-xs text-light-subtext dark:text-dark-subtext mt-1 leading-5">{etaInfo.etaDate}</Text>
+                  )}
                 </View>
               </View>
             )}
           </Card>
         )}
 
-        {/* Global Utilities Action Cards */}
-        <Card className="p-4 space-y-3 gap-3">
-          <Text className="text-xs text-light-subtext dark:text-dark-subtext font-black uppercase tracking-wider mb-2 ml-1">
-            Yönetici Araçları
-          </Text>
-
-          <Button
-            title="VERİLERİ CSV DIŞA AKTAR"
-            onPress={handleExportCSV}
-            variant="outline"
-            className="w-full h-11 border-accent-blue/20"
-            textClassName="text-xs font-extrabold"
-          />
-
-          <Button
-            title="TÜM VERİLERİ SIFIRLA"
-            onPress={handleResetData}
-            variant="danger"
-            className="w-full h-11 bg-accent-red/10 border border-accent-red/20 active:bg-accent-red"
-            textClassName="text-xs font-extrabold text-accent-red active:text-white"
-          />
-        </Card>
+        {/* Dışa aktar + sıfırla */}
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleExportCSV}
+              className="h-12 flex-row items-center justify-center rounded-2xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card"
+            >
+              <Download size={16} color={palette.accent} strokeWidth={2.4} />
+              <Text className="text-light-text dark:text-white text-[13px] font-bold ml-2">Dışa Aktar</Text>
+            </TouchableOpacity>
+          </View>
+          <View className="flex-1">
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleResetData}
+              className="h-12 flex-row items-center justify-center rounded-2xl border border-accent-red/30 bg-accent-red/10"
+            >
+              <RotateCcw size={16} color={palette.red} strokeWidth={2.4} />
+              <Text className="text-accent-red text-[13px] font-bold ml-2">Sıfırla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

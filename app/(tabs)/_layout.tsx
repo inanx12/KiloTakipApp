@@ -1,25 +1,26 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { TrendingUp, User } from "lucide-react-native";
-import { useTheme } from "../../utils/ThemeContext";
+import { LineChart, User } from "lucide-react-native";
+import { usePalette } from "../../utils/colors";
 
 export default function TabLayout() {
-  const { isDark } = useTheme();
+  const palette = usePalette();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? "#15151F" : "#FFFFFF",
-          borderTopColor: isDark ? "#232335" : "#E9ECEF",
-          borderTopWidth: 1.5,
-          height: 64,
+          backgroundColor: palette.card,
+          borderTopColor: palette.border,
+          borderTopWidth: 1,
+          height: 66,
           paddingBottom: 10,
-          paddingTop: 8,
+          paddingTop: 9,
+          elevation: 0,
         },
-        tabBarActiveTintColor: "#00F0FF",
-        tabBarInactiveTintColor: isDark ? "#6C6C85" : "#A0A0A0",
+        tabBarActiveTintColor: palette.accent,
+        tabBarInactiveTintColor: palette.muted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
@@ -30,19 +31,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <TrendingUp color={color} size={size || 22} strokeWidth={2.5} />
-          ),
+          title: "Panel",
+          tabBarIcon: ({ color }) => <LineChart color={color} size={22} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profil",
-          tabBarIcon: ({ color, size }) => (
-            <User color={color} size={size || 22} strokeWidth={2.5} />
-          ),
+          tabBarIcon: ({ color }) => <User color={color} size={22} strokeWidth={2.4} />,
         }}
       />
     </Tabs>

@@ -3,11 +3,13 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "../utils/ThemeContext";
+import { usePalette } from "../utils/colors";
 import "../global.css";
 
 function RootApp() {
   const { isDark } = useTheme();
-  const bgColor = isDark ? "#08080C" : "#F8F9FA";
+  const palette = usePalette();
+  const bgColor = palette.bg;
 
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: bgColor }}>
