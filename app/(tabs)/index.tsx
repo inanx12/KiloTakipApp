@@ -279,24 +279,19 @@ export default function DashboardScreen() {
             <Text className="text-[10px] font-bold uppercase tracking-wider text-light-subtext dark:text-dark-subtext">
               7 Gün Ort.
             </Text>
-            <Text
-              className="text-xl font-black text-light-text dark:text-dark-text mt-1.5"
-              style={{ lineHeight: 30 }}
-            >
-              {latestAvg ? `${latestAvg.toFixed(1)}` : "—"}
-              <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext"> kg</Text>
-            </Text>
+            <View className="flex-row items-baseline mt-1.5">
+              <Text className="text-xl leading-7 font-black text-light-text dark:text-dark-text">
+                {latestAvg ? latestAvg.toFixed(1) : "—"}
+              </Text>
+              <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext ml-1">kg</Text>
+            </View>
           </Card>
 
           <Card className="flex-1">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-light-subtext dark:text-dark-subtext">
               Tahmini Hedef
             </Text>
-            <Text
-              className="text-xl font-black text-accent-blue mt-1.5"
-              style={{ lineHeight: 30 }}
-              numberOfLines={1}
-            >
+            <Text className="text-xl leading-7 font-black text-accent-blue mt-1.5" numberOfLines={1}>
               {etaText}
             </Text>
           </Card>
