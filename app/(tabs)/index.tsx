@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { DateField } from "../../components/ui/DateField";
 import { SuccessTick } from "../../components/ui/SuccessTick";
 import { AnimatedChart } from "../../components/AnimatedChart";
 import { useTheme } from "../../utils/ThemeContext";
@@ -240,13 +241,8 @@ export default function DashboardScreen() {
               {editingId ? "Kaydı Düzenle" : "Kilo Ekle"}
             </Text>
 
-            {/* Tarih satırı (tam genişlik) */}
-            <View className="flex-row items-center justify-center h-10 mb-3 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
-              <Calendar size={13} color={muted} />
-              <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext ml-2">
-                {dayjs(dateInput).isValid() ? dayjs(dateInput).format("DD MMMM YYYY") : dateInput}
-              </Text>
-            </View>
+            {/* Tarih seçici (web: input[type=date], native: gün adımlayıcı) */}
+            <DateField value={dateInput} onChange={setDateInput} />
 
             {/* Giriş + aksiyon */}
             <View className="flex-row items-end gap-2">
