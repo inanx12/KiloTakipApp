@@ -281,7 +281,7 @@ export default function DashboardScreen() {
             </Text>
             <Text
               className="text-xl font-black text-light-text dark:text-dark-text mt-1.5"
-              style={{ lineHeight: 26 }}
+              style={{ lineHeight: 30 }}
             >
               {latestAvg ? `${latestAvg.toFixed(1)}` : "—"}
               <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext"> kg</Text>
@@ -294,7 +294,7 @@ export default function DashboardScreen() {
             </Text>
             <Text
               className="text-xl font-black text-accent-blue mt-1.5"
-              style={{ lineHeight: 26 }}
+              style={{ lineHeight: 30 }}
               numberOfLines={1}
             >
               {etaText}
