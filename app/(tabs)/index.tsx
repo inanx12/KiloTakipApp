@@ -240,7 +240,16 @@ export default function DashboardScreen() {
               {editingId ? "Kaydı Düzenle" : "Kilo Ekle"}
             </Text>
 
-            <View className="flex-row items-end gap-3">
+            {/* Tarih satırı (tam genişlik) */}
+            <View className="flex-row items-center justify-center h-10 mb-3 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
+              <Calendar size={13} color={muted} />
+              <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext ml-2">
+                {dayjs(dateInput).isValid() ? dayjs(dateInput).format("DD MMMM YYYY") : dateInput}
+              </Text>
+            </View>
+
+            {/* Giriş + aksiyon */}
+            <View className="flex-row items-end gap-2">
               <View className="flex-1">
                 <Input
                   placeholder="Örn: 74.5"
@@ -251,28 +260,19 @@ export default function DashboardScreen() {
                 />
               </View>
 
-              <View style={{ width: 116 }}>
-                <View className="flex-row items-center justify-center h-9 mb-2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
-                  <Calendar size={12} color={muted} />
-                  <Text className="text-[11px] font-bold text-light-subtext dark:text-dark-subtext ml-1.5">
-                    {dayjs(dateInput).isValid() ? dayjs(dateInput).format("DD MMM") : dateInput}
-                  </Text>
-                </View>
-
-                {editingId ? (
-                  <View className="flex-row gap-2">
-                    <Button title="Güncelle" onPress={handleSave} className="flex-1 h-12" textClassName="text-[12px]" />
-                    <TouchableOpacity
-                      onPress={handleCancelEdit}
-                      className="w-12 h-12 items-center justify-center rounded-2xl bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border"
-                    >
-                      <Text className="text-light-text dark:text-dark-text font-black">✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <Button title="Kaydet" onPress={handleSave} className="h-12" />
-                )}
-              </View>
+              {editingId ? (
+                <>
+                  <Button title="Güncelle" onPress={handleSave} className="h-12 min-w-[104px]" />
+                  <TouchableOpacity
+                    onPress={handleCancelEdit}
+                    className="w-12 h-12 items-center justify-center rounded-2xl bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border"
+                  >
+                    <Text className="text-light-text dark:text-dark-text font-black">✕</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Button title="Kaydet" onPress={handleSave} className="h-12 min-w-[112px]" />
+              )}
             </View>
           </Card>
         </Animated.View>
@@ -283,7 +283,10 @@ export default function DashboardScreen() {
             <Text className="text-[10px] font-bold uppercase tracking-wider text-light-subtext dark:text-dark-subtext">
               7 Gün Ort.
             </Text>
-            <Text className="text-xl font-black text-light-text dark:text-dark-text mt-1.5">
+            <Text
+              className="text-xl font-black text-light-text dark:text-dark-text mt-1.5"
+              style={{ lineHeight: 26 }}
+            >
               {latestAvg ? `${latestAvg.toFixed(1)}` : "—"}
               <Text className="text-xs font-bold text-light-subtext dark:text-dark-subtext"> kg</Text>
             </Text>
@@ -293,7 +296,11 @@ export default function DashboardScreen() {
             <Text className="text-[10px] font-bold uppercase tracking-wider text-light-subtext dark:text-dark-subtext">
               Tahmini Hedef
             </Text>
-            <Text className="text-xl font-black text-accent-blue mt-1.5" numberOfLines={1}>
+            <Text
+              className="text-xl font-black text-accent-blue mt-1.5"
+              style={{ lineHeight: 26 }}
+              numberOfLines={1}
+            >
               {etaText}
             </Text>
           </Card>
@@ -348,7 +355,10 @@ export default function DashboardScreen() {
                       <Text className="text-[11px] font-bold text-light-subtext dark:text-dark-subtext">
                         {dayjs(item.date).format("DD MMMM YYYY")}
                       </Text>
-                      <Text className="text-base font-black text-light-text dark:text-dark-text mt-0.5">
+                      <Text
+                        className="text-base font-black text-light-text dark:text-dark-text mt-0.5"
+                        style={{ lineHeight: 22 }}
+                      >
                         {item.weight.toFixed(1)}
                         <Text className="text-xs font-semibold text-light-subtext dark:text-dark-subtext"> kg</Text>
                       </Text>

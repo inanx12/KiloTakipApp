@@ -57,7 +57,10 @@ export function Button({
       ) : (
         <View className="flex-row items-center">
           {icon ? <View className="mr-2">{icon}</View> : null}
-          <Text className={`text-[13px] font-extrabold tracking-wide ${textStyles} ${textClassName}`}>
+          <Text
+            numberOfLines={1}
+            className={`text-[13px] font-extrabold tracking-wide ${textStyles} ${textClassName}`}
+          >
             {title}
           </Text>
         </View>
