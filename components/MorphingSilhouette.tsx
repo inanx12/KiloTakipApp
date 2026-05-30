@@ -60,10 +60,10 @@ export function MorphingSilhouette({ bmi, heightCm }: MorphingSilhouetteProps) {
   });
 
   return (
-    <View className="items-center justify-center bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-3xl p-6 shadow-soft dark:shadow-soft-dark relative overflow-hidden">
+    <View className="items-center justify-center bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-3xl p-6 relative overflow-hidden">
       <View className="absolute top-4 left-4 z-10">
-        <Text className="text-[10px] font-black tracking-widest text-accent-blue/80 uppercase">
-          BODY INDEX ANALYZER v2.0
+        <Text className="text-[10px] font-bold tracking-widest text-light-subtext dark:text-dark-subtext uppercase">
+          Vücut Analizi
         </Text>
       </View>
 
@@ -103,7 +103,7 @@ export function MorphingSilhouette({ bmi, heightCm }: MorphingSilhouetteProps) {
         </AnimatedG>
       </Svg>
 
-      <View className="flex-row justify-between items-center w-full mt-4 border-t border-light-border dark:border-dark-border/60 pt-3 z-10">
+      <View className="flex-row justify-between items-center w-full mt-4 border-t border-light-border dark:border-dark-border pt-3 z-10">
         <View>
           <Text className="text-[10px] text-light-subtext dark:text-dark-subtext uppercase tracking-wider font-semibold">
             Genişlik Faktörü

@@ -11,19 +11,21 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? "#15151F" : "#FFFFFF",
-          borderTopColor: isDark ? "#232335" : "#E9ECEF",
-          borderTopWidth: 1.5,
-          height: 64,
+          backgroundColor: isDark ? "#0A0A0B" : "#FFFFFF",
+          borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)",
+          borderTopWidth: 1,
+          height: 66,
           paddingBottom: 10,
-          paddingTop: 8,
+          paddingTop: 10,
+          elevation: 0,
         },
         tabBarActiveTintColor: "#00F0FF",
-        tabBarInactiveTintColor: isDark ? "#6C6C85" : "#A0A0A0",
+        tabBarInactiveTintColor: isDark ? "rgba(255,255,255,0.40)" : "rgba(10,10,11,0.42)",
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
           marginTop: 2,
+          letterSpacing: 0.3,
         },
       }}
     >

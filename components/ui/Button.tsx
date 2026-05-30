@@ -1,16 +1,21 @@
 import React from "react";
-import { TouchableOpacity, Text, TouchableOpacityProps, ActivityIndicator } from "react-native";
+import { Pressable, Text, PressableProps, ActivityIndicator, View } from "react-native";
 
-interface ButtonProps extends TouchableOpacityProps {
+interface ButtonProps extends PressableProps {
   title: string;
-  variant?: "primary" | "secondary" | "danger" | "outline";
+  variant?: "primary" | "subtle" | "danger" | "outline";
   loading?: boolean;
   className?: string;
   textClassName?: string;
+  icon?: React.ReactNode;
 }
 
 /**
- * Reusable premium button component with neon color schemes and interaction styles
+ * Tek vurgu rengini AZ kullanan buton seti.
+ * - primary: #00F0FF dolgu + koyu metin (birincil aksiyon)
+ * - subtle: nötr yüzey + ince kenarlık (ikincil)
+ * - outline: şeffaf + ince kenarlık
+ * - danger: kırmızı, sadece soluk dolgu
  */
 export function Button({
   title,
@@ -18,37 +23,45 @@ export function Button({
   loading = false,
   className = "",
   textClassName = "",
+  icon,
   ...props
 }: ButtonProps) {
-  let variantStyles = "bg-accent-blue active:opacity-80";
-  let textStyles = "text-light-bg dark:text-dark-bg font-extrabold";
+  let surface = "bg-accent-blue active:opacity-80";
+  let textStyles = "text-[#06181A]";
 
-  if (variant === "secondary") {
-    variantStyles = "bg-accent-purple active:opacity-85";
-    textStyles = "text-white font-extrabold";
+  if (variant === "subtle") {
+    surface =
+      "bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border active:opacity-70";
+    textStyles = "text-light-text dark:text-dark-text";
   } else if (variant === "danger") {
-    variantStyles = "bg-accent-red active:opacity-85";
-    textStyles = "text-white font-bold";
+    surface = "bg-accent-red/10 border border-accent-red/25 active:bg-accent-red/20";
+    textStyles = "text-accent-red";
   } else if (variant === "outline") {
-    variantStyles = "bg-transparent border border-accent-blue/40 active:bg-accent-blue/10";
-    textStyles = "text-accent-blue font-bold";
+    surface =
+      "bg-transparent border border-light-border dark:border-dark-border active:bg-accent-blue/10";
+    textStyles = "text-light-text dark:text-dark-text";
   }
 
+  const disabled = (props.disabled || loading) as boolean;
+
   return (
-    <TouchableOpacity
-      className={`h-14 flex-row justify-center items-center rounded-2xl px-5 ${variantStyles} ${
-        props.disabled || loading ? "opacity-40" : ""
+    <Pressable
+      className={`h-12 flex-row justify-center items-center rounded-2xl px-5 ${surface} ${
+        disabled ? "opacity-40" : ""
       } ${className}`}
-      disabled={props.disabled || loading}
+      disabled={disabled}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "outline" ? "#00F0FF" : "#FFFFFF"} />
+        <ActivityIndicator color={variant === "primary" ? "#06181A" : "#00F0FF"} />
       ) : (
-        <Text className={`text-[15px] tracking-wider uppercase ${textStyles} ${textClassName}`}>
-          {title}
-        </Text>
+        <View className="flex-row items-center">
+          {icon ? <View className="mr-2">{icon}</View> : null}
+          <Text className={`text-[13px] font-extrabold tracking-wide ${textStyles} ${textClassName}`}>
+            {title}
+          </Text>
+        </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }

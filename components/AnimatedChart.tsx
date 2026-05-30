@@ -121,7 +121,7 @@ export function AnimatedChart({ data, targetWeight }: AnimatedChartProps) {
         endSpacing={12}
         // Hedef çizgisi (kesikli)
         showReferenceLine1={!!targetWeight}
-        referenceLine1Position={targetWeight ? targetWeight - yOffset : 0}
+        referenceLine1Position={targetWeight || 0}
         referenceLine1Config={{
           color: colors.target,
           dashWidth: 5,
