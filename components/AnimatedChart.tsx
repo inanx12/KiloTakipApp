@@ -90,8 +90,8 @@ export function AnimatedChart({ data, targetWeight }: AnimatedChartProps) {
         // Kilo çizgisi
         color1={colors.line}
         thickness1={3}
-        curved
-        areaChart
+        curved={n >= 2}
+        areaChart={n >= 2}
         startFillColor1={colors.areaTop}
         endFillColor1={colors.areaTop}
         startOpacity={0.28}
@@ -130,11 +130,10 @@ export function AnimatedChart({ data, targetWeight }: AnimatedChartProps) {
           labelText: targetWeight ? `Hedef ${targetWeight}` : '',
           labelTextStyle: { color: colors.label, fontSize: 9 },
         }}
-        // Animasyon: soldan dolma
-        isAnimated
-        animateOnDataChange
+        // Animasyon: yalnızca ilk açılışta soldan dolma.
+        // (animateOnDataChange native'de veri değişince çökmeye yol açabiliyor — kaldırıldı)
+        isAnimated={n >= 2}
         animationDuration={900}
-        onDataChangeAnimationDuration={600}
       />
 
       {/* Açıklama (legend) */}
