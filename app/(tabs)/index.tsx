@@ -346,13 +346,12 @@ export default function DashboardScreen() {
                       <Text className="text-[11px] font-bold text-light-subtext dark:text-dark-subtext">
                         {dayjs(item.date).format("DD MMMM YYYY")}
                       </Text>
-                      <Text
-                        className="text-base font-black text-light-text dark:text-dark-text mt-0.5"
-                        style={{ lineHeight: 22 }}
-                      >
-                        {item.weight.toFixed(1)}
-                        <Text className="text-xs font-semibold text-light-subtext dark:text-dark-subtext"> kg</Text>
-                      </Text>
+                      <View className="flex-row items-baseline mt-0.5">
+                        <Text className="text-base leading-5 font-black text-light-text dark:text-dark-text">
+                          {item.weight.toFixed(1)}
+                        </Text>
+                        <Text className="text-xs font-semibold text-light-subtext dark:text-dark-subtext ml-1">kg</Text>
+                      </View>
                     </View>
                   </View>
 
