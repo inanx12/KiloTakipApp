@@ -30,11 +30,12 @@ import {
 import { calculateBMI, getBMICategory, calculateETA, exportToCSV } from "../../utils/helpers";
 import { useTheme, ThemeType } from "../../utils/ThemeContext";
 
+// VKİ kategori renkleri — helpers.getBMICategory ile birebir aynı kodlar
 const BMI_ZONES = [
   { label: "Zayıf", color: "#00F0FF" },
   { label: "Normal", color: "#30E0A1" },
   { label: "Fazla", color: "#BF55EC" },
-  { label: "Obez", color: "#FF5A5F" },
+  { label: "Obez", color: "#FF8A5B" },
 ];
 
 export default function ProfileScreen() {

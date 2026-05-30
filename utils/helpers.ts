@@ -24,15 +24,15 @@ export function getBMICategory(bmi: number): {
   color: string;
   description: string;
 } {
-  if (bmi <= 0) return { category: "Belirtilmemiş", color: "text-dark-subtext", description: "Lütfen profilinizi güncelleyin." };
+  if (bmi <= 0) return { category: "Belirtilmemiş", color: "#9A9AB0", description: "Lütfen profilinizi güncelleyin." };
   if (bmi < 18.5) {
     return { category: "Zayıf", color: "#00F0FF", description: "Boyunuza göre kilonuz düşük. Dengeli beslenmeye özen gösterin." };
   } else if (bmi < 25.0) {
-    return { category: "Normal", color: "#00FF87", description: "Tebrikler! Kilonuz boyunuz için son derece sağlıklı bir aralıkta." };
+    return { category: "Normal", color: "#30E0A1", description: "Tebrikler! Kilonuz boyunuz için son derece sağlıklı bir aralıkta." };
   } else if (bmi < 30.0) {
     return { category: "Fazla Kilolu", color: "#BF55EC", description: "İdeal kilonuzun biraz üzerindesiniz. Egzersiz ve beslenmeye dikkat edebilirsiniz." };
   } else {
-    return { category: "Obez", color: "#FF3B30", description: "Sağlık risklerini azaltmak için beslenme uzmanı yardımı almanız önerilir." };
+    return { category: "Obez", color: "#FF8A5B", description: "Sağlık risklerini azaltmak için beslenme uzmanı yardımı almanız önerilir." };
   }
 }
 

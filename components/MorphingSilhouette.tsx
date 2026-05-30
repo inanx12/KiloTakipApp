@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Text } from "react-native";
-import Svg, { Path, Ellipse, G, Defs, LinearGradient, Stop, Line } from "react-native-svg";
+import Svg, { Path, Ellipse, G, Line } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -79,25 +79,19 @@ export function MorphingSilhouette({ bmi, heightCm }: MorphingSilhouetteProps) {
       </View>
 
       <Svg width="200" height="280" viewBox="0 0 200 300" className="z-10">
-        <Defs>
-          <LinearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#BF55EC" stopOpacity="0.95" />
-            <Stop offset="60%" stopColor={activeColor} stopOpacity="0.85" />
-            <Stop offset="100%" stopColor="#00F0FF" stopOpacity="0.6" />
-          </LinearGradient>
-        </Defs>
-
         <AnimatedG animatedProps={gAnimatedProps}>
           <AnimatedEllipse
             cx="100"
             cy="42"
             ry="14"
-            fill="url(#bodyGradient)"
+            fill={activeColor}
+            fillOpacity={0.9}
             animatedProps={ellipseAnimatedProps}
           />
           <AnimatedPath
             d="M92,68 C80,72 65,77 55,92 L42,165 C38,175 48,182 54,175 L66,160 L74,115 C76,140 76,170 74,200 L68,275 C66,285 80,288 84,275 L94,205 L106,205 L116,275 C120,288 134,285 132,275 L126,200 C124,170 124,140 126,115 L134,160 L146,175 C152,182 162,175 158,165 L145,92 C135,77 120,72 108,68 Z"
-            fill="url(#bodyGradient)"
+            fill={activeColor}
+            fillOpacity={0.9}
             animatedProps={pathAnimatedProps}
           />
         </AnimatedG>
