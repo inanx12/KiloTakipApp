@@ -117,3 +117,36 @@ export async function clearAllData(): Promise<void> {
     console.error("Error resetting AsyncStorage:", e);
   }
 }
+
+/**
+ * Yedekten geri yükle. Kilo kayıtları mevcutla TARİHE GÖRE birleştirilir
+ * (aynı tarih varsa yedek değeri kazanır). Profil verilmişse kaydedilir.
+ * Döndürür: birleşmiş toplam kayıt sayısı ve profilin yüklenip yüklenmediği.
+ */
+export async function importBackup(
+  entries: WeightEntry[],
+  profile: UserProfile | null
+): Promise<{ totalEntries: number; profileImported: boolean }> {
+  try {
+    const existing = await getWeightHistory();
+    const byDate = new Map<string, WeightEntry>();
+    for (const e of existing) byDate.set(e.date, e);
+    for (const e of entries) byDate.set(e.date, e); // yedek çakışmada kazanır
+
+    const merged = Array.from(byDate.values()).sort(
+      (a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
+    );
+    await AsyncStorage.setItem(STORAGE_KEYS.WEIGHT_HISTORY, JSON.stringify(merged));
+
+    let profileImported = false;
+    if (profile && profile.height > 0 && profile.targetWeight > 0) {
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+      profileImported = true;
+    }
+
+    return { totalEntries: merged.length, profileImported };
+  } catch (e) {
+    console.error("Error importing backup:", e);
+    return { totalEntries: 0, profileImported: false };
+  }
+}

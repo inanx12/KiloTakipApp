@@ -59,12 +59,92 @@ export function calculateMovingAverage(
   return result;
 }
 
-export function exportToCSV(entries: WeightEntry[]): string {
-  const header = "Tarih,Kilo (kg)\n";
-  const rows = entries
-    .map((e) => `${e.date},${e.weight}`)
-    .join("\n");
-  return header + rows;
+export interface BackupProfile {
+  height: number;
+  targetWeight: number;
+}
+
+/**
+ * Tam yedek CSV'si: (varsa) profil bölümü + kilo geçmişi.
+ * Eski format (yalnızca "Tarih,Kilo (kg)") ile geriye dönük uyumludur.
+ */
+export function exportToCSV(entries: WeightEntry[], profile?: BackupProfile | null): string {
+  let out = "";
+  if (profile) {
+    out += "Boy (cm),Hedef Kilo (kg)\n";
+    out += `${profile.height},${profile.targetWeight}\n\n`;
+  }
+  out += "Tarih,Kilo (kg)\n";
+  out += entries.map((e) => `${e.date},${e.weight}`).join("\n");
+  return out;
+}
+
+export interface BackupData {
+  entries: WeightEntry[];
+  profile: BackupProfile | null;
+}
+
+/**
+ * Yedek CSV'sini ayrıştırır. Hem yeni (profil + kilo) hem eski (yalnızca kilo)
+ * formatı desteklenir. Satır sırası/başlıklara karşı toleranslıdır.
+ */
+export function parseBackupCSV(text: string): BackupData {
+  // BOM ve sıfır-genişlik/yönlü karakterleri temizle (Excel/aktarım artıkları)
+  const clean = (text || "").replace(/[\uFEFF\u200B\u200E\u200F\u00A0]/g, "");
+  const lines = clean
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const entries: WeightEntry[] = [];
+  let profile: BackupProfile | null = null;
+  let mode: "none" | "profile" | "weight" = "none";
+  const seenDates = new Set<string>();
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  for (const line of lines) {
+    const low = line.toLowerCase();
+
+    // Başlık satırları
+    if (low.includes("boy") && low.includes("hedef")) {
+      mode = "profile";
+      continue;
+    }
+    if (low.includes("tarih") && low.includes("kilo")) {
+      mode = "weight";
+      continue;
+    }
+
+    const parts = line.split(/[;,]/).map((p) => p.trim());
+    if (parts.length < 2) continue;
+
+    // Kilo kaydı (ilk sütun YYYY-MM-DD) — başlık olmasa bile yakalanır
+    if (dateRegex.test(parts[0])) {
+      const w = parseFloat(parts[1].replace(",", "."));
+      if (!isNaN(w) && w > 0 && w <= 600 && !seenDates.has(parts[0])) {
+        seenDates.add(parts[0]);
+        entries.push({
+          id: parts[0] + "_" + Math.random().toString(36).substring(2, 11),
+          weight: w,
+          date: parts[0],
+        });
+      }
+      continue;
+    }
+
+    // Profil satırı (iki sayı) — yalnızca profil modunda
+    if (mode === "profile") {
+      const h = parseInt(parts[0], 10);
+      const t = parseFloat(parts[1].replace(",", "."));
+      if (!isNaN(h) && !isNaN(t) && h >= 100 && h <= 250 && t >= 20 && t <= 300) {
+        profile = { height: h, targetWeight: t };
+      }
+      continue;
+    }
+  }
+
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  return { entries, profile };
 }
 
 export interface ETAResult {

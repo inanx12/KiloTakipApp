@@ -12,8 +12,9 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { Download, Trash2, Scale, Moon, Sun, Smartphone, ChevronRight } from "lucide-react-native";
+import { Download, Upload, Trash2, Scale, Moon, Sun, Smartphone, ChevronRight } from "lucide-react-native";
 
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -24,10 +25,11 @@ import {
   saveProfile,
   getWeightHistory,
   clearAllData,
+  importBackup,
   UserProfile,
   WeightEntry,
 } from "../../utils/storage";
-import { calculateBMI, getBMICategory, calculateETA, exportToCSV } from "../../utils/helpers";
+import { calculateBMI, getBMICategory, calculateETA, exportToCSV, parseBackupCSV } from "../../utils/helpers";
 import { useTheme, ThemeType } from "../../utils/ThemeContext";
 
 // VKİ kategori renkleri — helpers.getBMICategory ile birebir aynı kodlar
@@ -99,7 +101,7 @@ export default function ProfileScreen() {
       return;
     }
 
-    const csvContent = exportToCSV(history);
+    const csvContent = exportToCSV(history, profile);
 
     if (Platform.OS === "web") {
       try {
@@ -127,6 +129,89 @@ export default function ProfileScreen() {
       } catch (e) {
         console.error("Native share error:", e);
         Alert.alert("Hata", "CSV dosyası paylaşılamadı.");
+      }
+    }
+  };
+
+  const applyImport = async (text: string, debug?: string) => {
+    const raw = text || "";
+
+    // Excel/.xlsx (ZIP arşivi, "PK" ile başlar) veya metin olmayan dosya tespiti
+    const head = raw.replace(/^[\uFEFF\s]+/, "").slice(0, 4);
+    if (head.startsWith("PK") || /\u0000/.test(raw.slice(0, 2000))) {
+      const msg =
+        "Seçtiğin dosya bir Excel (.xlsx) / metin olmayan dosya; uygulama düz .csv bekliyor.\n\n" +
+        "Dosyayı Excel'de AÇIP KAYDETME — Excel .csv'yi .xlsx'e çevirir. " +
+        "'Dışa Aktar' ile oluşan .csv dosyasını doğrudan seç.";
+      Platform.OS === "web" ? window.alert(msg) : Alert.alert("İçe Aktarma", msg);
+      return;
+    }
+
+    const { entries, profile: importedProfile } = parseBackupCSV(raw);
+    if (entries.length === 0 && !importedProfile) {
+      const preview = raw.slice(0, 60).replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+      const msg =
+        `Geçerli yedek verisi bulunamadı.\n` +
+        `Okunan: ${raw.length} karakter.` +
+        (raw.length > 0 ? `\nBaşlangıç: "${preview}"` : `\n(Dosya boş okundu.)`) +
+        (debug ? `\n${debug}` : ``);
+      Platform.OS === "web" ? window.alert(msg) : Alert.alert("İçe Aktarma", msg);
+      return;
+    }
+
+    const res = await importBackup(entries, importedProfile);
+    await loadData(); // ekranı anında tazele
+    const okMsg = `Yedek yüklendi: ${entries.length} kayıt${res.profileImported ? " + profil" : ""}.`;
+    setSuccessMsg(okMsg);
+    setTimeout(() => setSuccessMsg(null), 3500);
+  };
+
+  const handleImportCSV = async () => {
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".csv,.txt,text/csv,text/plain";
+      input.onchange = async (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          await applyImport(text);
+        } catch (err) {
+          console.error("Web import error:", err);
+          window.alert("Dosya okunamadı.");
+        }
+      };
+      input.click();
+    } else {
+      try {
+        const res = await DocumentPicker.getDocumentAsync({
+          type: "*/*",
+          copyToCacheDirectory: true,
+        });
+        if (res.canceled) return;
+        const asset = res.assets?.[0];
+        if (!asset?.uri) {
+          Alert.alert("İçe Aktarma", "Dosya seçilemedi.");
+          return;
+        }
+
+        let text = "";
+        let readErr = "";
+        try {
+          text = await FileSystem.readAsStringAsync(asset.uri, {
+            encoding: FileSystem.EncodingType.UTF8,
+          });
+        } catch (e: any) {
+          readErr = String(e?.message || e);
+        }
+
+        const scheme = asset.uri.split(":")[0];
+        const debug = `[uri:${scheme} · boyut:${asset.size ?? "?"}B${readErr ? ` · okuma hatası: ${readErr}` : ""}]`;
+        await applyImport(text, debug);
+      } catch (err) {
+        console.error("Native import error:", err);
+        Alert.alert("Hata", "Dosya seçilemedi veya okunamadı.");
       }
     }
   };
@@ -393,24 +478,41 @@ export default function ProfileScreen() {
           </Card>
         </Animated.View>
 
-        {/* Dışa aktar + Sıfırla — yan yana */}
-        <Animated.View entering={FadeInDown.duration(450).delay(360)} className="flex-row gap-3">
-          <View className="flex-1">
-            <Button
-              title="CSV Dışa Aktar"
-              variant="subtle"
-              onPress={handleExportCSV}
-              icon={<Download size={15} color={isDark ? "#FFFFFF" : "#0A0A0B"} />}
-            />
+        {/* Yedekleme: Dışa/İçe aktar + Sıfırla */}
+        <Animated.View entering={FadeInDown.duration(450).delay(360)}>
+          <Text className="text-xs font-bold uppercase tracking-wider text-light-subtext dark:text-dark-subtext mb-2 ml-0.5">
+            Yedekleme
+          </Text>
+
+          <View className="flex-row gap-3 mb-2.5">
+            <View className="flex-1">
+              <Button
+                title="Dışa Aktar"
+                variant="subtle"
+                onPress={handleExportCSV}
+                icon={<Download size={15} color={isDark ? "#FFFFFF" : "#0A0A0B"} />}
+              />
+            </View>
+            <View className="flex-1">
+              <Button
+                title="İçe Aktar"
+                variant="subtle"
+                onPress={handleImportCSV}
+                icon={<Upload size={15} color={isDark ? "#FFFFFF" : "#0A0A0B"} />}
+              />
+            </View>
           </View>
-          <View className="flex-1">
-            <Button
-              title="Sıfırla"
-              variant="danger"
-              onPress={handleResetData}
-              icon={<Trash2 size={15} color="#FF5A5F" />}
-            />
-          </View>
+
+          <Text className="text-[11px] text-light-subtext dark:text-dark-subtext leading-4 mb-3 ml-0.5">
+            CSV ile yedek al; uygulamayı silsen bile "İçe Aktar" ile tüm kayıtların ve profilin geri gelir.
+          </Text>
+
+          <Button
+            title="Tüm Verileri Sıfırla"
+            variant="danger"
+            onPress={handleResetData}
+            icon={<Trash2 size={15} color="#FF5A5F" />}
+          />
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
