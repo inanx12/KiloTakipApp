@@ -18,13 +18,27 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "static"
     },
     "plugins": [
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "bf077e9f-5d7e-4347-a306-1a52bf868cc3"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bf077e9f-5d7e-4347-a306-1a52bf868cc3"
     }
   }
 }
