@@ -159,7 +159,17 @@ export default function ProfileScreen() {
   const bmiInfo = getBMICategory(bmi);
 
   // VKİ pozisyonu (15 - 40 aralığında %)
-  const bmiPercent = Math.max(0, Math.min(100, ((bmi - 15) / (40 - 15)) * 100));
+  // Beyaz işaretleyici konumu: bar 4 EŞİT genişlikte segment (%25'er) ama
+  // kategoriler eşit olmayan VKİ aralıkları. Doğrusal eşleme noktayı yanlış
+  // segmente koyuyordu (ör. VKİ 31 Obez iken Fazla diliminde görünüyordu).
+  // Parçalı eşleme: her kategori kendi %25'lik dilimine denk gelir.
+  const bmiPercent = (() => {
+    const c = (t: number) => Math.max(0, Math.min(1, t));
+    if (bmi < 18.5) return c((bmi - 13) / (18.5 - 13)) * 25;
+    if (bmi < 25) return 25 + c((bmi - 18.5) / (25 - 18.5)) * 25;
+    if (bmi < 30) return 50 + c((bmi - 25) / (30 - 25)) * 25;
+    return 75 + c((bmi - 30) / (45 - 30)) * 25;
+  })();
   const activeZone = bmi <= 0 ? -1 : bmi < 18.5 ? 0 : bmi < 25 ? 1 : bmi < 30 ? 2 : 3;
 
   const getProgressInfo = () => {

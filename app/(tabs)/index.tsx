@@ -163,7 +163,7 @@ export default function DashboardScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-light-bg dark:bg-dark-bg"
     >
-      <SuccessTick visible={showSuccessTick} onComplete={() => setShowSuccessTick(false)} />
+      <SuccessTick visible={showSuccessTick} onComplete={() => setShowSuccessTick(false)} streak={streak} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
