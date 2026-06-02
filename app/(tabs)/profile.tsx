@@ -29,7 +29,14 @@ import {
   UserProfile,
   WeightEntry,
 } from "../../utils/storage";
-import { calculateBMI, getBMICategory, calculateETA, exportToCSV, parseBackupCSV } from "../../utils/helpers";
+import {
+  calculateBMI,
+  getBMICategory,
+  calculateETA,
+  exportToCSV,
+  parseBackupCSV,
+  spreadsheetToCsv,
+} from "../../utils/helpers";
 import { useTheme, ThemeType } from "../../utils/ThemeContext";
 
 // VKİ kategori renkleri — helpers.getBMICategory ile birebir aynı kodlar
@@ -136,17 +143,6 @@ export default function ProfileScreen() {
   const applyImport = async (text: string, debug?: string) => {
     const raw = text || "";
 
-    // Excel/.xlsx (ZIP arşivi, "PK" ile başlar) veya metin olmayan dosya tespiti
-    const head = raw.replace(/^[\uFEFF\s]+/, "").slice(0, 4);
-    if (head.startsWith("PK") || /\u0000/.test(raw.slice(0, 2000))) {
-      const msg =
-        "Seçtiğin dosya bir Excel (.xlsx) / metin olmayan dosya; uygulama düz .csv bekliyor.\n\n" +
-        "Dosyayı Excel'de AÇIP KAYDETME — Excel .csv'yi .xlsx'e çevirir. " +
-        "'Dışa Aktar' ile oluşan .csv dosyasını doğrudan seç.";
-      Platform.OS === "web" ? window.alert(msg) : Alert.alert("İçe Aktarma", msg);
-      return;
-    }
-
     const { entries, profile: importedProfile } = parseBackupCSV(raw);
     if (entries.length === 0 && !importedProfile) {
       const preview = raw.slice(0, 60).replace(/\r/g, "\\r").replace(/\n/g, "\\n");
@@ -170,16 +166,27 @@ export default function ProfileScreen() {
     if (Platform.OS === "web") {
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = ".csv,.txt,text/csv,text/plain";
+      input.accept = ".csv,.txt,.xlsx,.xls,text/csv,text/plain";
       input.onchange = async (e: any) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-          const text = await file.text();
-          await applyImport(text);
+          const isXlsx =
+            /\.xl(sx|sm|sb|s)$/i.test(file.name || "") || /sheet|excel/i.test(file.type || "");
+          let csvText = "";
+          if (isXlsx) {
+            csvText = spreadsheetToCsv(new Uint8Array(await file.arrayBuffer()), "array");
+          } else {
+            csvText = await file.text();
+            // .csv uzantılı ama aslında Excel (PK = ZIP) ise çevir
+            if (csvText.startsWith("PK")) {
+              csvText = spreadsheetToCsv(new Uint8Array(await file.arrayBuffer()), "array");
+            }
+          }
+          await applyImport(csvText);
         } catch (err) {
           console.error("Web import error:", err);
-          window.alert("Dosya okunamadı.");
+          window.alert("Dosya okunamadı veya geçersiz.");
         }
       };
       input.click();
@@ -196,19 +203,31 @@ export default function ProfileScreen() {
           return;
         }
 
-        let text = "";
+        let csvText = "";
         let readErr = "";
         try {
-          text = await FileSystem.readAsStringAsync(asset.uri, {
+          // Önce düz metin oku
+          const utf8 = await FileSystem.readAsStringAsync(asset.uri, {
             encoding: FileSystem.EncodingType.UTF8,
           });
+          const isXlsx =
+            utf8.startsWith("PK") || /\.xl(sx|sm|sb|s)$/i.test(asset.name || "");
+          if (isXlsx) {
+            // Excel: base64 oku, CSV'ye çevir
+            const b64 = await FileSystem.readAsStringAsync(asset.uri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            csvText = await spreadsheetToCsv(b64, "base64");
+          } else {
+            csvText = utf8;
+          }
         } catch (e: any) {
           readErr = String(e?.message || e);
         }
 
         const scheme = asset.uri.split(":")[0];
-        const debug = `[uri:${scheme} · boyut:${asset.size ?? "?"}B${readErr ? ` · okuma hatası: ${readErr}` : ""}]`;
-        await applyImport(text, debug);
+        const debug = `[uri:${scheme} · boyut:${asset.size ?? "?"}B${readErr ? ` · hata: ${readErr}` : ""}]`;
+        await applyImport(csvText, debug);
       } catch (err) {
         console.error("Native import error:", err);
         Alert.alert("Hata", "Dosya seçilemedi veya okunamadı.");
@@ -504,7 +523,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text className="text-[11px] text-light-subtext dark:text-dark-subtext leading-4 mb-3 ml-0.5">
-            CSV ile yedek al; uygulamayı silsen bile "İçe Aktar" ile tüm kayıtların ve profilin geri gelir.
+            CSV ile yedek al; uygulamayı silsen bile "İçe Aktar" ile tüm kayıtların ve profilin geri gelir. CSV ve Excel (.xlsx) dosyaları desteklenir.
           </Text>
 
           <Button

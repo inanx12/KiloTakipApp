@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import "dayjs/locale/tr";
+import * as XLSX from "xlsx";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -145,6 +146,41 @@ export function parseBackupCSV(text: string): BackupData {
 
   entries.sort((a, b) => a.date.localeCompare(b.date));
   return { entries, profile };
+}
+
+/**
+ * Excel (.xlsx/.xls) dosyasını, parseBackupCSV'nin anladığı CSV metnine çevirir.
+ * SheetJS dinamik import edilir (ana bundle'ı şişirmemek için, yalnızca gerektiğinde).
+ * Tarih hücreleri YYYY-MM-DD'ye normalize edilir.
+ * @param data base64 string (native) veya ArrayBuffer (web)
+ * @param type "base64" | "array"
+ */
+export function spreadsheetToCsv(
+  data: string | ArrayBuffer | Uint8Array,
+  type: "base64" | "array"
+): string {
+  const wb = XLSX.read(data, { type, cellDates: true });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return "";
+  const sheet = wb.Sheets[sheetName];
+  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    raw: true,
+    blankrows: true,
+    defval: "",
+  });
+
+  const fmt = (c: any): string => {
+    if (c instanceof Date) {
+      const y = c.getFullYear();
+      const m = String(c.getMonth() + 1).padStart(2, "0");
+      const d = String(c.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    return c === null || c === undefined ? "" : String(c);
+  };
+
+  return rows.map((r) => (Array.isArray(r) ? r.map(fmt).join(",") : "")).join("\n");
 }
 
 export interface ETAResult {
