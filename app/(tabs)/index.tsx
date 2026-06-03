@@ -8,9 +8,9 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Edit2, Trash2, Calendar, ArrowDownRight, ArrowUpRight, Flame } from "lucide-react-native";
+import { Edit2, Trash2, Calendar, ArrowDownRight, ArrowUpRight, Flame, Shield, ChevronRight } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import dayjs from "dayjs";
 
@@ -27,20 +27,33 @@ import {
   saveWeightEntry,
   deleteWeightEntry,
   getProfile,
+  getRankState,
+  recordRankProgress,
   WeightEntry,
 } from "../../utils/storage";
-import { calculateStreak, calculateETA, calculateMovingAverage } from "../../utils/helpers";
+import {
+  calculateStreak,
+  calculateETA,
+  calculateMovingAverage,
+  computeRank,
+  getMomentum,
+  RankState,
+  RankResult,
+} from "../../utils/helpers";
+import { RANK_ACCENT } from "../../constants/rankColors";
 
 type TimeFilter = "Hafta" | "Ay" | "Tümü";
 
 export default function DashboardScreen() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const muted = isDark ? "rgba(255,255,255,0.40)" : "rgba(10,10,11,0.42)";
 
   const [history, setHistory] = useState<WeightEntry[]>([]);
   const [targetWeight, setTargetWeight] = useState<number>(0);
+  const [rankState, setRankState] = useState<RankState | null>(null);
 
   // Form states
   const [weightInput, setWeightInput] = useState<string>("");
@@ -57,6 +70,7 @@ export default function DashboardScreen() {
     setHistory(wHistory);
     const profile = await getProfile();
     if (profile) setTargetWeight(profile.targetWeight);
+    setRankState(await getRankState());
     setDateInput(dayjs().format("YYYY-MM-DD"));
   };
 
@@ -82,6 +96,8 @@ export default function DashboardScreen() {
 
     const updatedHistory = await saveWeightEntry(weightNum, dateInput);
     setHistory(updatedHistory);
+    await recordRankProgress(); // rütbe: banka/RP/XP/seri/comeback güncelle
+    await loadData(); // rütbe rozetini tazele
     setWeightInput("");
     setEditingId(null);
     setDateInput(dayjs().format("YYYY-MM-DD"));
@@ -145,6 +161,14 @@ export default function DashboardScreen() {
 
   const changeInfo = getWeightChange();
   const streak = calculateStreak(history);
+
+  const rank: RankResult | null = rankState ? computeRank(rankState) : null;
+  const rankAccent = rank ? RANK_ACCENT[rank.key] : "#9A9AB0";
+  const rankMomentum = rankState
+    ? getMomentum(rankState.current7dAvg, rankState.prev7dAvg)
+    : "flat";
+  const momentumLabel =
+    rankMomentum === "up" ? "🔥 İvme iyi" : rankMomentum === "down" ? "↓ Dikkat" : "→ Sabit";
 
   const avgSeries = calculateMovingAverage(history, 7);
   const latestAvg = avgSeries.length > 0 ? avgSeries[avgSeries.length - 1] : null;
@@ -232,6 +256,34 @@ export default function DashboardScreen() {
             )}
           </Card>
         </Animated.View>
+
+        {/* Kompakt rütbe rozeti → tıklayınca Durum sekmesi */}
+        {rank ? (
+          <Animated.View entering={FadeInDown.duration(450).delay(90)} className="mt-4">
+            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/status" as any)}>
+              <Card className="flex-row items-center py-3.5">
+                <View
+                  className="w-11 h-11 rounded-xl items-center justify-center"
+                  style={{ backgroundColor: rankAccent + "1A" }}
+                >
+                  <Shield size={20} color={rankAccent} strokeWidth={2.5} />
+                </View>
+                <View className="ml-3 flex-1">
+                  <View className="flex-row items-center">
+                    <Text className="text-base font-black" style={{ color: rankAccent }}>
+                      {rank.maintenance ? "" : `${rank.key} · `}
+                      {rank.name}
+                    </Text>
+                  </View>
+                  <Text className="text-[11px] font-semibold text-light-subtext dark:text-dark-subtext mt-0.5">
+                    {momentumLabel} · %{Math.round(rank.barPct)} ilerleme
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={muted} />
+              </Card>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : null}
 
         {/* Hızlı kayıt girişi */}
         <Animated.View entering={FadeInDown.duration(450).delay(120)} className="mt-4">

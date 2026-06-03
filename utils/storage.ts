@@ -1,10 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
+import {
+  RankState,
+  migrateRankState,
+  applyRankProgress,
+  completeDailyQuest,
+} from "./helpers";
 
 // Storage keys namespace
 const STORAGE_KEYS = {
   WEIGHT_HISTORY: "@kilotakip:weight_history",
   USER_PROFILE: "@kilotakip:user_profile",
+  RANK_STATE: "@kilotakip:rank_state",
 };
 
 export interface WeightEntry {
@@ -113,6 +120,7 @@ export async function clearAllData(): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEYS.WEIGHT_HISTORY);
     await AsyncStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+    await AsyncStorage.removeItem(STORAGE_KEYS.RANK_STATE);
   } catch (e) {
     console.error("Error resetting AsyncStorage:", e);
   }
@@ -149,4 +157,69 @@ export async function importBackup(
     console.error("Error importing backup:", e);
     return { totalEntries: 0, profileImported: false };
   }
+}
+
+// =========================================================================
+// RÜTBE DURUMU (RankState) kalıcılığı + saf helpers'a köprü
+// =========================================================================
+
+/** Ham (eksik alanlı olabilir) kayıtlı rütbe durumunu döndürür. */
+async function getRawRankState(): Promise<Partial<RankState> | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.RANK_STATE);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Error fetching rank state:", e);
+    return null;
+  }
+}
+
+/**
+ * Güncel, alanları tam RankState'i döndürür. Eksik/eski kayıtlar geçmişten
+ * güvenli şekilde türetilir (migration). DİSK'e yazmaz — salt okunur tazeleme.
+ */
+export async function getRankState(): Promise<RankState> {
+  const [raw, history, profile] = await Promise.all([
+    getRawRankState(),
+    getWeightHistory(),
+    getProfile(),
+  ]);
+  const goal = profile?.targetWeight ?? raw?.goalCurrent ?? 0;
+  return migrateRankState(raw, history, goal);
+}
+
+async function saveRankState(state: RankState): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.RANK_STATE, JSON.stringify(state));
+  } catch (e) {
+    console.error("Error saving rank state:", e);
+  }
+}
+
+/**
+ * Bir kilo kaydı yapıldıktan SONRA çağrılır: rütbe durumunu (banka/RP/XP/seri/
+ * comeback) günceller ve diske yazar. Saf mantık helpers.applyRankProgress'te.
+ */
+export async function recordRankProgress(): Promise<RankState> {
+  const [raw, history, profile] = await Promise.all([
+    getRawRankState(),
+    getWeightHistory(),
+    getProfile(),
+  ]);
+  const goal = profile?.targetWeight ?? raw?.goalCurrent ?? 0;
+  const today = dayjs().format("YYYY-MM-DD");
+  const base = migrateRankState(raw, history, goal);
+  const next = applyRankProgress(base, history, goal, today);
+  await saveRankState(next);
+  return next;
+}
+
+/** Durum sekmesinden manuel günlük görev tamamlama. */
+export async function completeQuest(): Promise<RankState> {
+  const state = await getRankState();
+  const today = dayjs().format("YYYY-MM-DD");
+  const next = completeDailyQuest(state, today);
+  await saveRankState(next);
+  return next;
 }

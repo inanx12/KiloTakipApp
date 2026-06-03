@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { TrendingUp, User } from "lucide-react-native";
+import { TrendingUp, User, Shield } from "lucide-react-native";
 import { useTheme } from "../../utils/ThemeContext";
 
 export default function TabLayout() {
@@ -35,6 +35,15 @@ export default function TabLayout() {
           title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
             <TrendingUp color={color} size={size || 22} strokeWidth={2.5} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="status"
+        options={{
+          title: "Durum",
+          tabBarIcon: ({ color, size }) => (
+            <Shield color={color} size={size || 22} strokeWidth={2.5} />
           ),
         }}
       />
