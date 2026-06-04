@@ -5,8 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
     "backgroundColor": "#000000",
-    "themeColor": "#00F0FF",
     "scheme": "kilotakip",
     "ios": {
       "supportsTablet": true,
@@ -21,7 +21,8 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
