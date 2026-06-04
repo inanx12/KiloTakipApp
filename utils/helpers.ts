@@ -571,14 +571,19 @@ export function applyRankProgress(
   if (!frozen && isNewDay) {
     d.consistencyXP += XP.LOG; // kayıt
     d.consistencyXP += streakMilestoneXP(d.streakCount); // 7/30/100 taşları
-
-    // Günün görevi otomatik (Bugün tartıl) ise kayıt onu da tamamlar.
-    const quest = getDailyQuest(today);
-    if (quest.auto && d.questDoneDate !== today) {
-      d.consistencyXP += XP.QUEST;
-      d.questDoneDate = today;
-    }
   }
+
+  // Otomatik günlük görev (Bugün tartıl): bugün kayıt varsa tamamlanır.
+  // isNewDay'den BAĞIMSIZ — ilk kayıtta migration lastLogDate'i bugüne çekince
+  // isNewDay false oluyordu ve görev hiç tamamlanmıyordu (questDoneDate guard'ı
+  // XP'nin çift sayılmasını önler).
+  const quest = getDailyQuest(today);
+  const loggedToday = sorted.some((e) => e.date === today);
+  if (!frozen && quest.auto && loggedToday && d.questDoneDate !== today) {
+    d.consistencyXP += XP.QUEST;
+    d.questDoneDate = today;
+  }
+
   d.lastLogDate = today;
 
   // --- 3) UYKU hazırlığı (45 gün ilerleme yok → bir sonraki ilerleme 2x) ---

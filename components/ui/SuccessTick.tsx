@@ -7,7 +7,6 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
-  runOnJS,
 } from 'react-native-reanimated';
 import { CheckCircle2 } from 'lucide-react-native';
 
@@ -24,30 +23,39 @@ export function SuccessTick({ onComplete, visible, streak = 0 }: SuccessTickProp
   const fireScale = useSharedValue(1);
 
   useEffect(() => {
-    if (visible) {
-      opacity.value = 1;
-      scale.value = withSequence(
-        withSpring(1.2, { damping: 12, stiffness: 100 }),
-        withSpring(1, { damping: 10, stiffness: 120 }),
-        withDelay(
-          1000,
-          withTiming(0, { duration: 300 }, () => {
-            opacity.value = 0;
-            if (onComplete) {
-              runOnJS(onComplete)();
-            }
-          })
-        )
-      );
+    if (!visible) return;
 
-      // Kısa, dikkat dağıtmayan alev nabzı (iki hafif puls)
-      fireScale.value = withSequence(
-        withTiming(1.35, { duration: 170 }),
-        withTiming(1, { duration: 170 }),
-        withDelay(110, withTiming(1.2, { duration: 140 })),
-        withTiming(1, { duration: 140 })
-      );
-    }
+    // Giriş: hızlı fade + yaylı pop.
+    opacity.value = withTiming(1, { duration: 120 });
+    scale.value = withSequence(
+      withSpring(1.2, { damping: 12, stiffness: 140 }),
+      withSpring(1, { damping: 11, stiffness: 150 })
+    );
+
+    // Kısa, dikkat dağıtmayan alev nabzı (iki hafif puls)
+    fireScale.value = withSequence(
+      withTiming(1.35, { duration: 170 }),
+      withTiming(1, { duration: 170 }),
+      withDelay(110, withTiming(1.2, { duration: 140 })),
+      withTiming(1, { duration: 140 })
+    );
+
+    // Kapatma JS timer'larıyla yönetilir — reanimated 4'te (Yeni Mimari)
+    // animasyon tamamlanma callback'i güvenilir tetiklenmiyor, eskiden buna
+    // bağlı olduğu için tik ekranda kalıyordu. Önce yumuşak çıkış, sonra onComplete.
+    const HOLD = 1100;
+    const t1 = setTimeout(() => {
+      opacity.value = withTiming(0, { duration: 240 });
+      scale.value = withTiming(0.7, { duration: 240 });
+    }, HOLD);
+    const t2 = setTimeout(() => {
+      onComplete?.();
+    }, HOLD + 280);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [visible, onComplete, scale, opacity, fireScale]);
 
   const animatedStyle = useAnimatedStyle(() => {

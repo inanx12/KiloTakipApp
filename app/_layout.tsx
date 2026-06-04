@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { SystemBars } from "react-native-edge-to-edge";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "../utils/ThemeContext";
 import "../global.css";
@@ -11,7 +11,10 @@ function RootApp() {
 
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: bgColor }}>
-      <StatusBar style={isDark ? "light" : "dark"} backgroundColor={bgColor} translucent={false} />
+      {/* Edge-to-edge (SDK 54): SystemBars hem durum hem navigasyon çubuğu
+          ikon rengini yönetir. backgroundColor/translucent edge-to-edge'de
+          yok sayıldığı için (uyarı verirdi) kullanılmaz. */}
+      <SystemBars style={isDark ? "light" : "dark"} />
 
       <Stack
         screenOptions={{

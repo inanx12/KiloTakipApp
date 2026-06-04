@@ -1,10 +1,14 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { TrendingUp, User, Shield } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../utils/ThemeContext";
 
 export default function TabLayout() {
   const { isDark } = useTheme();
+  // Edge-to-edge (SDK 54): içerik sistem navigasyon çubuğunun arkasına aktığı
+  // için tab bar'a alt güvenli-alan boşluğu eklenir (etiketler kesilmesin).
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -14,8 +18,8 @@ export default function TabLayout() {
           backgroundColor: isDark ? "#0A0A0B" : "#FFFFFF",
           borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)",
           borderTopWidth: 1,
-          height: 66,
-          paddingBottom: 10,
+          height: 66 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 10,
           elevation: 0,
         },
